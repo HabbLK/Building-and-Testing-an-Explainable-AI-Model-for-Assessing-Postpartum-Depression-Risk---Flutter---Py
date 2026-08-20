@@ -1,0 +1,10 @@
+{
+  "best_model": "random_forest",
+  "uses_scaler": false,
+  "selection_metric": "f1_weighted (tuned)",
+  "class_names": [
+    "No",
+    "Sometimes",
+    "Yes"
+  ]
+}

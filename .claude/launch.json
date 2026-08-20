@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "ppd-web-demo",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8765", "--directory", "ppd_project/ppd_risk_app/build/web"],
+      "port": 8765
+    }
+  ]
+}

@@ -1,0 +1,81 @@
+{
+  "n_raw_rows": 1503,
+  "n_unique_rows": 326,
+  "n_duplicate_rows_removed": 1177,
+  "age_map": {
+    "25-30": 0,
+    "30-35": 1,
+    "35-40": 2,
+    "40-45": 3,
+    "45-50": 4
+  },
+  "symptom_maps": {
+    "Irritable towards baby & partner": {
+      "No": 0,
+      "Sometimes": 1,
+      "Yes": 2
+    },
+    "Trouble sleeping at night": {
+      "No": 0,
+      "Yes": 1,
+      "Two or more days a week": 2
+    },
+    "Problems concentrating or making decision": {
+      "No": 0,
+      "Yes": 1,
+      "Often": 2
+    },
+    "Overeating or loss of appetite": {
+      "Not at all": 0,
+      "No": 0,
+      "Yes": 2
+    },
+    "Feeling anxious": {
+      "No": 0,
+      "Yes": 2
+    },
+    "Feeling of guilt": {
+      "No": 0,
+      "Maybe": 1,
+      "Yes": 2
+    },
+    "Problems of bonding with baby": {
+      "No": 0,
+      "Sometimes": 1,
+      "Yes": 2
+    },
+    "Suicide attempt": {
+      "No": 0,
+      "Not interested to say": 1,
+      "Yes": 2
+    }
+  },
+  "target_map": {
+    "No": 0,
+    "Sometimes": 1,
+    "Yes": 2
+  },
+  "feature_columns": [
+    "Age",
+    "Irritable towards baby & partner",
+    "Trouble sleeping at night",
+    "Problems concentrating or making decision",
+    "Overeating or loss of appetite",
+    "Feeling anxious",
+    "Feeling of guilt",
+    "Problems of bonding with baby",
+    "Suicide attempt"
+  ],
+  "target_column": "Feeling sad or Tearful",
+  "target_meaning": {
+    "0": "No",
+    "1": "Sometimes",
+    "2": "Yes"
+  },
+  "class_balance": {
+    "0": 110,
+    "1": 87,
+    "2": 129
+  },
+  "leakage_note": "Target ('Feeling sad or Tearful') is excluded from the predictor set. No predictor is derived from the target, directly or indirectly, unlike the previous composite-score approach."
+}
