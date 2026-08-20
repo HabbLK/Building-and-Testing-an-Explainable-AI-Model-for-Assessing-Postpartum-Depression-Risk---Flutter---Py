@@ -1,3 +1,4 @@
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../services/local_store.dart';
@@ -15,8 +16,29 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => HomeScreenState();
 }
 
+class _Tip {
+  final IconData icon;
+  final Color color;
+  final String text;
+  const _Tip(this.icon, this.color, this.text);
+}
+
 class HomeScreenState extends State<HomeScreen> {
+  static const _tips = [
+    _Tip(Icons.bedtime_rounded, AppColors.primary,
+        'Sleep when the baby sleeps where you can — even one longer stretch makes a difference.'),
+    _Tip(Icons.groups_rounded, AppColors.accent,
+        'A short, honest chat with someone you trust can ease a heavy day.'),
+    _Tip(Icons.directions_walk_rounded, AppColors.secondary,
+        'Ten minutes outside is linked with a real lift in mood and energy.'),
+    _Tip(Icons.self_improvement_rounded, AppColors.success,
+        'A few slow breaths before a feed can take the edge off anxiety in the moment.'),
+    _Tip(Icons.restaurant_rounded, AppColors.warning,
+        'Simple, regular meals matter more than "perfect" ones — accept the help if it\'s offered.'),
+  ];
+
   String _name = '';
+  List<ServerAssessment> _history = [];
   ServerAssessment? _latest;
   int _streak = 0;
   bool _loading = true;
@@ -41,10 +63,21 @@ class HomeScreenState extends State<HomeScreen> {
     if (!mounted) return;
     setState(() {
       _name = user?['name']?.split(' ').first ?? 'there';
+      _history = history;
       _latest = history.isNotEmpty ? history.first : null;
       _streak = computeStreak(history);
       _loading = false;
     });
+  }
+
+  int get _checkinsThisMonth {
+    final now = DateTime.now();
+    return _history.where((r) => r.timestamp.year == now.year && r.timestamp.month == now.month).length;
+  }
+
+  _Tip get _todaysTip {
+    final dayOfYear = DateTime.now().difference(DateTime(DateTime.now().year, 1, 1)).inDays;
+    return _tips[dayOfYear % _tips.length];
   }
 
   @override
@@ -75,23 +108,25 @@ class HomeScreenState extends State<HomeScreen> {
                         ),
                       ],
                     ),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text('How are you feeling today?',
-                              style: Theme.of(context).textTheme.bodyMedium),
-                        ),
-                        if (_streak > 0) _streakChip(context),
-                      ],
-                    ),
+                    Text('How are you feeling today?', style: Theme.of(context).textTheme.bodyMedium),
+                    const SizedBox(height: 18),
+                    _statRow(context),
                     const SizedBox(height: 20),
                     _heroCard(context),
                     const SizedBox(height: 20),
                     _latestCard(context),
+                    if (_history.length > 1) ...[
+                      const SizedBox(height: 20),
+                      _trendCard(context),
+                    ],
                     const SizedBox(height: 24),
                     Text('Quick actions', style: Theme.of(context).textTheme.titleMedium),
                     const SizedBox(height: 12),
                     _quickActions(context),
+                    const SizedBox(height: 24),
+                    _tipCard(context),
+                    const SizedBox(height: 16),
+                    _resourceTeaser(context),
                   ],
                 ),
               ),
@@ -99,24 +134,44 @@ class HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _streakChip(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: AppColors.warning.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Text('🔥', style: TextStyle(fontSize: 13)),
-          const SizedBox(width: 4),
-          Text(
-            '$_streak-day streak',
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.warning),
+  Widget _statRow(BuildContext context) {
+    final stats = [
+      ('🔥', '$_streak', 'Day streak'),
+      ('📅', '$_checkinsThisMonth', 'This month'),
+      ('📝', '${_history.length}', 'Total check-ins'),
+    ];
+    return Row(
+      children: stats.map((s) {
+        final (emoji, value, label) = s;
+        return Expanded(
+          child: Container(
+            margin: EdgeInsets.only(right: s == stats.last ? 0 : 10),
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
+            decoration: BoxDecoration(
+              color: Theme.of(context).cardColor,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+            ),
+            child: Column(
+              children: [
+                Text(emoji, style: const TextStyle(fontSize: 15)),
+                const SizedBox(height: 4),
+                Text(value,
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleLarge
+                        ?.copyWith(fontSize: 17, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 2),
+                Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 10),
+                ),
+              ],
+            ),
           ),
-        ],
-      ),
+        );
+      }).toList(),
     );
   }
 
@@ -227,6 +282,61 @@ class HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _trendCard(BuildContext context) {
+    final recent = _history.take(7).toList().reversed.toList();
+    final spots = <FlSpot>[
+      for (var i = 0; i < recent.length; i++) FlSpot(i.toDouble(), recent[i].riskProbability),
+    ];
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(18, 16, 18, 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Recent trend', style: Theme.of(context).textTheme.titleMedium),
+                Text('Last ${recent.length}', style: Theme.of(context).textTheme.bodyMedium),
+              ],
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              height: 90,
+              child: LineChart(
+                LineChartData(
+                  minY: 0,
+                  maxY: 1,
+                  gridData: const FlGridData(show: false),
+                  borderData: FlBorderData(show: false),
+                  titlesData: const FlTitlesData(show: false),
+                  lineTouchData: const LineTouchData(enabled: false),
+                  lineBarsData: [
+                    LineChartBarData(
+                      spots: spots,
+                      isCurved: true,
+                      color: AppColors.primary,
+                      barWidth: 3,
+                      dotData: FlDotData(
+                        show: true,
+                        getDotPainter: (spot, percent, bar, index) => FlDotCirclePainter(
+                          radius: index == spots.length - 1 ? 4.5 : 2.5,
+                          color: AppColors.bandColor(recent[index].riskBand),
+                          strokeWidth: 0,
+                        ),
+                      ),
+                      belowBarData: BarAreaData(show: true, color: AppColors.primary.withValues(alpha: 0.10)),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _quickActions(BuildContext context) {
     final actions = [
       (Icons.edit_note_rounded, 'Check-in', AppColors.primary, () => widget.onNavigateToTab(1)),
@@ -280,6 +390,71 @@ class HomeScreenState extends State<HomeScreen> {
           ),
         );
       }).toList(),
+    );
+  }
+
+  Widget _tipCard(BuildContext context) {
+    final tip = _todaysTip;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: tip.color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: tip.color.withValues(alpha: 0.18)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(9),
+            decoration: BoxDecoration(color: tip.color.withValues(alpha: 0.16), shape: BoxShape.circle),
+            child: Icon(tip.icon, color: tip.color, size: 18),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Tip for today', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 13)),
+                const SizedBox(height: 4),
+                Text(tip.text, style: Theme.of(context).textTheme.bodyMedium),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _resourceTeaser(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(18),
+      onTap: () => widget.onNavigateToTab(3),
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              AppIllustration.book(size: 48),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Explore self-care resources', style: Theme.of(context).textTheme.titleMedium),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Short, practical tips for the postpartum weeks.',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right_rounded, color: AppColors.textSecondary),
+            ],
+          ),
+        ),
+      ),
     );
   }
 

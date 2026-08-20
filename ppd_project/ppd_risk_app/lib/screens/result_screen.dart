@@ -4,6 +4,34 @@ import '../services/api_service.dart';
 import '../services/local_store.dart';
 import '../theme/app_theme.dart';
 import '../widgets/illustrations.dart';
+import 'help_screen.dart';
+
+class _TipItem {
+  final IconData icon;
+  final String text;
+  const _TipItem(this.icon, this.text);
+}
+
+const _sadTips = [
+  _TipItem(Icons.bedtime_rounded,
+      'Protect your sleep — nap when the baby naps, and ask someone to cover one night feed if you can.'),
+  _TipItem(Icons.groups_rounded, 'Tell someone you trust how you\'re really feeling today, even briefly.'),
+  _TipItem(Icons.directions_walk_rounded,
+      'Ten minutes outside, even just on the doorstep, can genuinely lift your mood.'),
+  _TipItem(Icons.restaurant_rounded,
+      'Keep meals simple and accept help with food if it\'s offered — it matters more than "perfect".'),
+  _TipItem(Icons.self_improvement_rounded, 'Be gentle with yourself — this feeling is common, and it is treatable.'),
+];
+
+const _tearfulTips = [
+  _TipItem(Icons.support_agent_rounded,
+      'You don\'t have to manage this alone — tell a partner, friend, or health visitor today.'),
+  _TipItem(Icons.medical_services_rounded, 'Consider raising this with your GP, midwife, or health visitor this week.'),
+  _TipItem(Icons.self_improvement_rounded, 'A few slow breaths before a feed can take the edge off in the moment.'),
+  _TipItem(Icons.checklist_rtl_rounded, 'Lower the bar on chores — rest matters more than getting things done right now.'),
+  _TipItem(Icons.favorite_rounded,
+      'If this feeling doesn\'t ease over the next couple of weeks, please don\'t wait to ask for support.'),
+];
 
 class ResultScreen extends StatefulWidget {
   final RiskResult result;
@@ -190,6 +218,14 @@ class _ResultScreenState extends State<ResultScreen> {
                   ),
                 );
               }),
+              if (result.riskBand == 'Sad' || result.riskBand == 'Tearful') ...[
+                const SizedBox(height: 24),
+                _tipsSection(context, result.riskBand == 'Sad' ? _sadTips : _tearfulTips, color),
+              ],
+              if (result.riskBand.startsWith('Extreme')) ...[
+                const SizedBox(height: 24),
+                _urgentHelpCard(context),
+              ],
               const SizedBox(height: 20),
               Text('Private note (optional)', style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: 8),
@@ -246,6 +282,78 @@ class _ResultScreenState extends State<ResultScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _tipsSection(BuildContext context, List<_TipItem> tips, Color color) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Things that might help right now', style: Theme.of(context).textTheme.titleLarge),
+        const SizedBox(height: 6),
+        Text(
+          'A few small, practical things — not a substitute for professional support.',
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
+        const SizedBox(height: 12),
+        ...tips.map((t) => Card(
+              margin: const EdgeInsets.only(bottom: 10),
+              child: ListTile(
+                contentPadding: const EdgeInsets.all(14),
+                leading: Container(
+                  padding: const EdgeInsets.all(9),
+                  decoration: BoxDecoration(color: color.withValues(alpha: 0.12), shape: BoxShape.circle),
+                  child: Icon(t.icon, color: color, size: 20),
+                ),
+                title: Text(t.text, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.textPrimary)),
+              ),
+            )),
+      ],
+    );
+  }
+
+  Widget _urgentHelpCard(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: AppColors.critical.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.critical.withValues(alpha: 0.35)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.warning_amber_rounded, color: AppColors.critical),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'This result suggests you may need support soon',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(color: AppColors.critical),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Please consider speaking to your GP, midwife, or health visitor as soon as you can — '
+            'or use the crisis contacts below if you need to talk to someone right now.',
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.critical, foregroundColor: Colors.white),
+              onPressed: () =>
+                  Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HelpScreen())),
+              icon: const Icon(Icons.support_agent_rounded),
+              label: const Text('See crisis support contacts'),
+            ),
+          ),
+        ],
       ),
     );
   }
